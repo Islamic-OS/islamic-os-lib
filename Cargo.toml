@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "A library for IslamicOS, including a multi-purpose CLI"
+repository = "https://github.com/Islamic-OS/islamic-os-lib"
+readme = "README.md"
+keywords = ["library", "cli", "islamicos"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
