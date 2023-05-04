@@ -67,7 +67,9 @@ pub fn get_config() -> DB {
 
     // config
 
+    #[allow(unused_mut)]
     let mut options = Options::default();
+    #[allow(unused_mut)]
     let mut db = DB::open(config_path, options).unwrap();
 
     db

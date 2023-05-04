@@ -35,6 +35,7 @@ pub fn get_today_prayer_times() -> TodayPrayerTimes {
         latitude,
         longitude,
     };
+    #[allow(deprecated)]
     let date = Utc::today();
     let params = Configuration::with(get_method(method), get_madhab(madhab));
     let prayers = PrayerSchedule::new()
@@ -111,6 +112,7 @@ pub fn get_current_prayer_details() -> CurrentAndNextSalah {
     let madhab = binding.as_str();
 
     let city = Coordinates::new(latitude, longitude);
+    #[allow(deprecated)]
     let date = Utc::today();
     let params = Configuration::with(get_method(method), get_madhab(madhab));
     let prayers = PrayerSchedule::new()

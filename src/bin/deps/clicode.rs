@@ -13,7 +13,8 @@ pub enum Routes {
     Settings,
     SettingsLocationSettings,
     SettingsSalahSettings,
-    SettingsSalahMadhabSettings
+    SettingsSalahMadhabSettings,
+    SettingsSalahMethodSettings,
 }
 
 pub struct CLIChores {
@@ -78,8 +79,9 @@ impl CLIChores {
                 Routes::SalahDetails => self.route_salah_details(),
                 Routes::Settings => self.route_settings(),
                 Routes::SettingsSalahSettings => self.route_settings_salah_settings(),
-                Routes::SettingsSalahMadhabSettings => self.route_settings_salah_madhab_settings(),
                 Routes::SettingsLocationSettings => self.route_settings_location_settings().await,
+                Routes::SettingsSalahMadhabSettings => self.route_settings_salah_madhab_settings(),
+                Routes::SettingsSalahMethodSettings => self.route_settings_salah_method_settings()
             }
         }
     }
@@ -231,7 +233,7 @@ impl CLIChores {
 
         match ans {
             Ok("Madhab") => self.navigate(&mut Routes::SettingsSalahMadhabSettings),
-            Ok("Calculation Method") => todo!(),
+            Ok("Calculation Method") => self.navigate(&mut Routes::SettingsSalahMethodSettings),
             Ok("Back") => self.back(),
             Ok("Quit to Home") => self.navigate(&mut Routes::Home),
             Ok(&_) => {}
@@ -244,7 +246,7 @@ impl CLIChores {
             "Which madhab do you follow?",
             vec![
                 "Hanafi",
-                "Shafi",
+                "Shafi, Maliki, Hanbali, Jafari",
                 "Back",
                 "Quit to Home",
             ],
@@ -254,7 +256,48 @@ impl CLIChores {
 
         match ans {
             Ok("Hanafi") => update_config_value("salahcfg_madhab", "Hanafi"),
-            Ok("Shafi") => update_config_value("salahcfg_madhab", "Shafi"),
+            Ok("Shafi, Maliki, Hanbali and Jafari") => update_config_value("salahcfg_madhab", "Shafi"),
+            Ok("Back") => self.back(),
+            Ok("Quit to Home") => self.navigate(&mut Routes::Home),
+            Ok(&_) => {}
+            Err(e) => println!("Err: {}", e),
+        }
+    }
+
+    fn route_settings_salah_method_settings(&mut self) {
+        let ans = Select::new(
+            "Which calculation method do you follow?",
+            vec![
+                "Muslim World League",
+                "Islamic Society of North America",
+                "Egyptian General Authority of Survey",
+                "Umm Al-Qura University, Makkah",
+                "University of Islamic Sciences, Karachi",
+                "Institute of Geophysics, University of Tehran",
+                "Kuwait",
+                "Qatar",
+                "Majlis Ugama Islam Singapura, Singapore",
+                "Turkish Presidency of Religious Affairs",
+                "Moonsighting Committee Worldwide",
+                "Back",
+                "Quit to Home",
+            ],
+        )
+        .with_help_message("Please select your desired service.")
+        .prompt();
+
+        match ans {
+            Ok("Muslim World League") => update_config_value("salahcfg_method", "MWL"),
+            Ok("Islamic Society of North America") => update_config_value("salahcfg_method", "ISNA"),
+            Ok("Egyptian General Authority of Survey") => update_config_value("salahcfg_method", "Egyptian"),
+            Ok("Umm Al-Qura University, Makkah") => update_config_value("salahcfg_method", "UmmAlQura"),
+            Ok("University of Islamic Sciences, Karachi") => update_config_value("salahcfg_method", "Karachi"),
+            Ok("Institute of Geophysics, University of Tehran") => update_config_value("salahcfg_method", "Tehran"),
+            Ok("Kuwait") => update_config_value("salahcfg_method", "Kuwait"),
+            Ok("Qatar") => update_config_value("salahcfg_method", "Qatar"),
+            Ok("Majlis Ugama Islam Singapura, Singapore") => update_config_value("salahcfg_method", "Singapore"),
+            Ok("Turkish Presidency of Religious Affairs") => update_config_value("salahcfg_method", "Turkey"),
+            Ok("Moonsighting Committee Worldwide") => update_config_value("salahcfg_method", "MoonsightingCommittee"),
             Ok("Back") => self.back(),
             Ok("Quit to Home") => self.navigate(&mut Routes::Home),
             Ok(&_) => {}
