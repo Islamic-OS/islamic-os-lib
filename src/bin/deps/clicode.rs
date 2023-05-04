@@ -1,8 +1,9 @@
 use colored::Colorize;
-use inquire::Select;
-use islamic_os_lib::adhansys::{
-    qiblah::get_qiblah_direction,
-    times::{get_current_prayer_details, get_today_prayer_times},
+use inquire::{Select, Text};
+
+use super::{
+    config::{display_current_location, update_config_value},
+    displays::{display_qiblah_direction, display_salah_details, prompt_for_config, get_location_from_ip},
 };
 
 #[derive(PartialEq, Clone, Copy)]
@@ -10,126 +11,9 @@ pub enum Routes {
     Home,
     SalahDetails,
     Settings,
-}
-
-pub fn display_salah_details() {
-    let today_prayer_times = get_today_prayer_times();
-
-    println!("{}", "Today's Salah Times".blue().bold());
-
-    println!("{} {}", "Fajr:".black().on_cyan(), today_prayer_times.fajr);
-    println!(
-        "{} {}",
-        "Dhuhr:".black().on_cyan(),
-        today_prayer_times.dhuhr
-    );
-    println!("{} {}", "Asr:".black().on_cyan(), today_prayer_times.asr);
-    println!(
-        "{} {}",
-        "Maghrib:".black().on_cyan(),
-        today_prayer_times.maghrib
-    );
-    println!("{} {}", "Isha:".black().on_cyan(), today_prayer_times.isha);
-    println!(
-        "{} {}",
-        "Qiyam:".black().on_cyan(),
-        today_prayer_times.qiyam
-    );
-
-    println!();
-
-    println!("{}", "Currently On-going and Next Salah".blue().bold());
-
-    let current_salah = get_current_prayer_details();
-
-    println!(
-        "{} {}",
-        "Current Salah:".black().on_cyan(),
-        current_salah.current.name
-    );
-
-    // Display time remaining in this format: 1 hour and 30 minutes left
-    let mut current_salah_time = String::new();
-
-    if current_salah.current.time_remaining.0 > 0 {
-        if current_salah.current.time_remaining.0 == 1 {
-            current_salah_time
-                .push_str(&format!("{} hour", current_salah.current.time_remaining.0));
-        } else {
-            current_salah_time
-                .push_str(&format!("{} hours", current_salah.current.time_remaining.0));
-        }
-    }
-
-    if current_salah.current.time_remaining.1 > 0 {
-        if current_salah.current.time_remaining.0 > 0 {
-            current_salah_time.push_str(" and ");
-        }
-
-        if current_salah.current.time_remaining.1 == 1 {
-            current_salah_time.push_str(&format!(
-                "{} minute",
-                current_salah.current.time_remaining.1
-            ));
-        } else {
-            current_salah_time.push_str(&format!(
-                "{} minutes",
-                current_salah.current.time_remaining.1
-            ));
-        }
-    }
-
-    if current_salah.current.time_remaining.0 == 0 && current_salah.current.time_remaining.1 == 0 {
-        current_salah_time.push_str("Now");
-    } else {
-        current_salah_time.push_str(" left");
-    }
-
-    println!(
-        "{} {}",
-        "Time Remaining:".black().on_cyan(),
-        current_salah_time
-    );
-
-    println!();
-
-    println!("{} {}", "Next Salah:".black().on_cyan(), current_salah.next);
-}
-
-pub fn display_qiblah_direction() {
-    let qibla = get_qiblah_direction();
-
-    println!("{}", "Qiblah Direction".blue().bold());
-
-    let mut direction = String::new();
-    direction.push_str(&format!("{:.2}deg ", qibla.degrees));
-
-    if qibla.degrees > 355.0 || qibla.degrees < 5.0 {
-        direction.push_str(format!("{}", "North".blue().bold()).as_str());
-    } else if qibla.degrees > 5.0 && qibla.degrees < 85.0 {
-        direction.push_str(format!("{}", "North East".blue().bold()).as_str());
-    } else if qibla.degrees > 85.0 && qibla.degrees < 95.0 {
-        direction.push_str(format!("{}", "East".blue().bold()).as_str());
-    } else if qibla.degrees > 95.0 && qibla.degrees < 175.0 {
-        direction.push_str(format!("{}", "South East".blue().bold()).as_str());
-    } else if qibla.degrees > 175.0 && qibla.degrees < 185.0 {
-        direction.push_str(format!("{}", "South".blue().bold()).as_str());
-    } else if qibla.degrees > 185.0 && qibla.degrees < 265.0 {
-        direction.push_str(format!("{}", "South West".blue().bold()).as_str());
-    } else if qibla.degrees > 265.0 && qibla.degrees < 275.0 {
-        direction.push_str(format!("{}", "West".blue().bold()).as_str());
-    } else if qibla.degrees > 275.0 && qibla.degrees < 355.0 {
-        direction.push_str(format!("{}", "North West".blue().bold()).as_str());
-    }
-
-    println!("{} {}", "Direction Angle:".black().on_cyan(), direction);
-    println!();
-    println!(
-        "{}",
-        "[ Side Note: Use a compass to lookup the direction... ]"
-            .black()
-            .bold()
-    );
+    SettingsLocationSettings,
+    SettingsSalahSettings,
+    SettingsSalahMadhabSettings
 }
 
 pub struct CLIChores {
@@ -183,14 +67,19 @@ impl CLIChores {
         }
     }
 
-    pub fn run(&mut self) {
+    pub async fn run(&mut self) {
+        prompt_for_config();
+
         loop {
             self.greet();
 
             match self.curr_route {
                 Routes::Home => self.route_home(),
                 Routes::SalahDetails => self.route_salah_details(),
-                Routes::Settings => todo!(),
+                Routes::Settings => self.route_settings(),
+                Routes::SettingsSalahSettings => self.route_settings_salah_settings(),
+                Routes::SettingsSalahMadhabSettings => self.route_settings_salah_madhab_settings(),
+                Routes::SettingsLocationSettings => self.route_settings_location_settings().await,
             }
         }
     }
@@ -228,6 +117,7 @@ impl CLIChores {
 
         match ans {
             Ok("Get Salah-related Information") => self.navigate(&mut Routes::SalahDetails),
+            Ok("Settings") => self.navigate(&mut Routes::Settings),
             Ok("Quit") => self.quit(),
             Ok(&_) => {}
             Err(e) => println!("Err: {}", e),
@@ -250,6 +140,121 @@ impl CLIChores {
         match ans {
             Ok("Show Today's Salah Schedule") => self.set_curr_executable(display_salah_details),
             Ok("Show Qiblah Direction") => self.set_curr_executable(display_qiblah_direction),
+            Ok("Back") => self.back(),
+            Ok("Quit to Home") => self.navigate(&mut Routes::Home),
+            Ok(&_) => {}
+            Err(e) => println!("Err: {}", e),
+        }
+    }
+
+    fn route_settings(&mut self) {
+        let ans = Select::new(
+            "What would you like to configure?",
+            vec![
+                "Location Settings",
+                "Salah Configuration",
+                "Back",
+                "Quit to Home",
+            ],
+        )
+        .with_help_message("Please select your desired service.")
+        .prompt();
+
+        match ans {
+            Ok("Location Settings") => self.navigate(&mut Routes::SettingsLocationSettings),
+            Ok("Salah Configuration") => self.navigate(&mut Routes::SettingsSalahSettings),
+            Ok("Back") => self.back(),
+            Ok("Quit to Home") => self.navigate(&mut Routes::Home),
+            Ok(&_) => {}
+            Err(e) => println!("Err: {}", e),
+        }
+    }
+
+    async fn route_settings_location_settings(&mut self) {
+        let ans = Select::new(
+            "What would you like to configure?",
+            vec![
+                "Manually Enter Location",
+                "Automatically Detect Location (Make sure you have an active internet connection, and you are not using a VPN)",
+                "Back",
+                "Quit to Home",
+            ],
+        )
+        .with_help_message("Please select your desired service.")
+        .prompt();
+
+        match ans {
+            Ok("Manually Enter Location") => {
+                // Prompt for latitude and longitude
+                let latitude = Text::new("Enter Latitude: ")
+                    .with_help_message("Please enter the latitude of your location.")
+                    .prompt();
+                let longitude = Text::new("Enter Longitude: ")
+                    .with_help_message("Please enter the longitude of your location.")
+                    .prompt();
+
+                update_config_value("location_latitude", latitude.unwrap().as_str());
+                update_config_value("location_longitude", longitude.unwrap().as_str());
+
+                self.set_curr_executable(display_current_location);
+            }
+            Ok("Automatically Detect Location (Make sure you have an active internet connection, and you are not using a VPN)") => {
+                // Get location from IP address
+                let location = get_location_from_ip().await.unwrap();
+
+                
+
+                update_config_value("location_latitude", format!("{:?}", location.latitude).as_str());
+                update_config_value("location_longitude", format!("{:?}", location.longitude).as_str());
+
+                self.set_curr_executable(display_current_location);
+            }
+            Ok("Back") => self.back(),
+            Ok("Quit to Home") => self.navigate(&mut Routes::Home),
+            Ok(&_) => {}
+            Err(e) => println!("Err: {}", e),
+        }
+    }
+
+    fn route_settings_salah_settings(&mut self) {
+        let ans = Select::new(
+            "What would you like to configure?",
+            vec![
+                "Madhab",
+                "Calculation Method",
+                "Back",
+                "Quit to Home",
+            ],
+        )
+        .with_help_message("Please select your desired service.")
+        .prompt();
+
+        match ans {
+            Ok("Madhab") => self.navigate(&mut Routes::SettingsSalahMadhabSettings),
+            Ok("Calculation Method") => todo!(),
+            Ok("Back") => self.back(),
+            Ok("Quit to Home") => self.navigate(&mut Routes::Home),
+            Ok(&_) => {}
+            Err(e) => println!("Err: {}", e),
+        }
+    }
+
+    fn route_settings_salah_madhab_settings(&mut self) {
+        let ans = Select::new(
+            "Which madhab do you follow?",
+            vec![
+                "Hanafi",
+                "Shafi",
+                "Back",
+                "Quit to Home",
+            ],
+        )
+        .with_help_message("Please select your desired service.")
+        .prompt();
+
+        match ans {
+            Ok("Hanafi") => update_config_value("salahcfg_madhab", "Hanafi"),
+            Ok("Shafi") => update_config_value("salahcfg_madhab", "Shafi"),
             Ok("Back") => self.back(),
             Ok("Quit to Home") => self.navigate(&mut Routes::Home),
             Ok(&_) => {}

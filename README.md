@@ -10,10 +10,9 @@
     - [x] Currently on-going prayer and next prayer
   - [x] Qiblah direction
 - [ ] Settings
-  - [ ] Location & Time Settings
-    - [ ] Manual Location Change
-    - [ ] Detect Approximate Location (with Internet turned on and VPN turned off)
-    - [ ] Timezone Selection
+  - [x] Location Settings
+    - [x] Manual Location Change
+    - [x] Detect Approximate Location (with Internet turned on and VPN turned off)
   - [ ] Salah Configuration
-    - [ ] Madhab (Hanafi, Shafi, etc...)
+    - [x] Madhab (Hanafi, Shafi, etc...)
     - [ ] Method (Mecca, Karachi, ISNA, etc...)

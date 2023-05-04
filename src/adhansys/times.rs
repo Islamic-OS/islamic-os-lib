@@ -2,6 +2,8 @@ use crate::adhansys::methods::{get_madhab, get_method};
 use salah::prelude::*;
 use std::process::exit;
 
+use super::config::get_config;
+
 pub struct TodayPrayerTimes {
     pub fajr: String,
     pub sunrise: String,
@@ -88,10 +90,25 @@ pub fn get_today_prayer_times() -> TodayPrayerTimes {
 }
 
 pub fn get_current_prayer_details() -> CurrentAndNextSalah {
-    let latitude = 23.7231;
-    let longitude = 90.4086;
-    let method = "Karachi";
-    let madhab = "Hanafi";
+    let mut config = get_config();
+
+    let latitude_u8 = config.get(b"location_latitude").unwrap();
+    let longitude_u8 = config.get(b"location_longitude").unwrap();
+    let method_u8 = config.get(b"salahcfg_method").unwrap();
+    let madhab_u8 = config.get(b"salahcfg_madhab").unwrap();
+
+    let latitude = String::from_utf8(latitude_u8.to_vec())
+        .unwrap()
+        .parse::<f64>()
+        .unwrap();
+    let longitude = String::from_utf8(longitude_u8.to_vec())
+        .unwrap()
+        .parse::<f64>()
+        .unwrap();
+    let binding = String::from_utf8(method_u8.to_vec()).unwrap();
+    let method = binding.as_str();
+    let binding = String::from_utf8(madhab_u8.to_vec()).unwrap();
+    let madhab = binding.as_str();
 
     let city = Coordinates::new(latitude, longitude);
     let date = Utc::today();
