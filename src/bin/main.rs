@@ -1,10 +1,18 @@
-use deps::clicode::{CLIChores, Routes};
+use deps::{
+    clicode::CLIChores,
+    tuicode::{Routes, TUIChores},
+};
 
 mod deps;
 
 #[tokio::main]
 async fn main() {
-    let mut cli_tool = CLIChores::new(vec![Routes::Home], &mut Routes::Home);
+    let mut tui_tool = TUIChores::new(vec![Routes::Home], &mut Routes::Home);
+    let mut cli_tool = CLIChores::new();
 
-    cli_tool.run().await;
+    if cli_tool.is_args_provided() {
+        cli_tool.run();
+    } else {
+        tui_tool.run().await;
+    }
 }
